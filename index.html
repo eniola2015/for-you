@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Kids - Parent CMS & Playroom Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        quicksand: ['Quicksand', 'sans-serif'],
+                    },
+                    colors: {
+                        kidRed: '#FF334B',
+                        kidYellow: '#FFC700',
+                        kidBlue: '#00A8FF',
+                        kidGreen: '#2ECC71',
+                        kidPurple: '#9B51E0',
+                        kidDark: '#2D3748',
+                        kidBg: '#F0F8FF'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #F0F8FF;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #E2E8F0;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00A8FF;
+            border-radius: 10px;
+        }
+        .bouncy-card {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+        }
+        .bouncy-card:hover {
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: 0 12px 25px -10px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col text-kidDark overflow-hidden">
+
+    <div id="parentGateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border-8 border-kidBlue text-center relative">
+            <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-kidBlue text-white w-20 h-20 rounded-full flex items-center justify-center text-3xl shadow-lg border-4 border-white">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-kidBlue mt-6 mb-2">Grown-Up Gate</h2>
+            <p class="text-gray-600 mb-6 font-quicksand text-lg">Solve this problem to access the Parent Backend & Admin CMS.</p>
+            
+            <div class="bg-kidBg p-4 rounded-2xl mb-6 border-2 border-dashed border-kidBlue">
+                <span id="mathProblem" class="text-3xl font-extrabold text-kidPurple">7 × 8 = ?</span>
+            </div>
+
+            <input type="number" id="mathAnswerInput" placeholder="Answer" class="w-full px-4 py-3 rounded-2xl border-4 border-gray-200 focus:border-kidBlue focus:outline-none text-2xl text-center font-bold mb-6">
+            
+            <div class="flex space-x-4">
+                <button onclick="closeParentGate()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-2xl font-bold text-lg transition">Cancel</button>
+                <button onclick="verifyParentGate()" class="flex-1 bg-kidGreen hover:bg-emerald-600 text-white py-3 rounded-2xl font-bold text-lg shadow-lg transition">Enter CMS</button>
+            </div>
+            <p id="parentGateError" class="text-kidRed mt-3 font-semibold hidden">Oops! Try again.</p>
+        </div>
+    </div>
+
+    <div id="globalModeBar" class="bg-kidDark text-white px-6 py-2.5 flex items-center justify-between shadow-md z-40">
+        <div class="flex items-center space-x-3">
+            <span class="bg-kidRed text-white text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">Portal Mode</span>
+            <span id="currentModeLabel" class="font-bold text-sm text-kidYellow">Kids Playroom</span>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="switchToKidMode()" id="btnSwitchKid" class="bg-kidBlue hover:bg-blue-600 text-white px-4 py-1.5 rounded-xl font-bold text-sm shadow transition flex items-center space-x-2">
+                <i class="fa-solid fa-child"></i>
+                <span>Child Experience</span>
+            </button>
+            <button onclick="requestParentAccess()" id="btnSwitchParent" class="bg-kidPurple hover:bg-purple-700 text-white px-4 py-1.5 rounded-xl font-bold text-sm shadow transition flex items-center space-x-2">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Parent Dashboard / CMS</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="profileScreen" class="flex-1 bg-gradient-to-br from-kidBlue via-kidPurple to-kidRed flex flex-col items-center justify-center p-6 overflow-y-auto">
+        <div class="bg-white/95 backdrop-blur-md rounded-3xl max-w-2xl w-full p-8 shadow-2xl border-8 border-white text-center">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-kidRed text-white p-3 rounded-2xl text-2xl shadow">
+                        <i class="fa-solid fa-shield-cat"></i>
+                    </div>
+                    <h1 class="text-3xl font-extrabold text-kidDark">YouTube <span class="text-kidRed">Kids</span></h1>
+                </div>
+                <button onclick="requestParentAccess()" class="bg-kidPurple hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-bold text-sm shadow flex items-center space-x-2">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Open Parent CMS</span>
+                </button>
+            </div>
+
+            <h2 class="text-2xl font-bold text-kidPurple mb-2">Who is watching today?</h2>
+            <p class="text-gray-500 font-quicksand mb-8">Choose your profile to begin your adventure!</p>
+
+            <div id="profilesGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-6 mb-8">
+                <!-- Dynamically populated profiles -->
+            </div>
+
+            <button onclick="openCreateProfileModal()" class="w-full bg-gradient-to-r from-kidYellow to-amber-400 hover:from-amber-400 text-kidDark py-4 rounded-2xl font-extrabold text-xl shadow-lg flex items-center justify-center space-x-3 bouncy-card">
+                <i class="fa-solid fa-user-plus text-2xl"></i>
+                <span>Add New Kid Profile</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="parentCmsDashboard" class="flex-1 bg-gray-50 flex flex-col h-full overflow-hidden hidden">
+        <header class="bg-white border-b px-8 py-5 flex items-center justify-between shadow-sm">
+            <div class="flex items-center space-x-3">
+                <div class="bg-kidPurple text-white p-3 rounded-2xl text-2xl shadow">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold text-kidDark">Parent Backend & CMS Portal</h1>
+                    <p class="text-xs text-gray-500 font-quicksand">Manage kid profiles, upload YouTube / Google Drive videos, and control content feeds</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="switchToKidMode()" class="bg-kidGreen text-white px-6 py-2.5 rounded-2xl font-bold shadow-lg hover:bg-emerald-600 transition flex items-center space-x-2">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Launch Kids Playroom</span>
+                </button>
+                <button onclick="backToProfiles()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2.5 rounded-2xl font-bold transition">Logout</button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-8">
+            
+            <!-- CMS Navigation Tabs -->
+            <div class="flex space-x-4 border-b pb-4">
+                <button onclick="switchCmsTab('videos')" id="cmsTabBtnVideos" class="px-6 py-3 rounded-2xl font-bold bg-kidPurple text-white shadow transition flex items-center space-x-2">
+                    <i class="fa-solid fa-video"></i>
+                    <span>Manage & Upload Videos</span>
+                </button>
+                <button onclick="switchCmsTab('profiles')" id="cmsTabBtnProfiles" class="px-6 py-3 rounded-2xl font-bold bg-white text-gray-600 hover:bg-gray-100 shadow-sm transition flex items-center space-x-2">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Manage Kid Profiles</span>
+                </button>
+            </div>
+
+            <div id="cmsContentVideos" class="space-y-8">
+                <!-- Upload Form Card -->
+                <div class="bg-white rounded-3xl p-6 lg:p-8 shadow-md border-4 border-kidPurple/20">
+                    <h3 class="text-xl font-bold text-kidPurple mb-4 flex items-center space-x-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Upload / Ingest YouTube or Google Drive Video</span>
+                    </h3>
+                    <form id="videoUploadForm" onsubmit="handleVideoUpload(event)" class="grid grid-cols-1 md:grid-cols-2 gap-6 font-quicksand">
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-2">Video Title</label>
+                            <input type="text" id="uploadTitle" required placeholder="e.g. Fun ABC Song & Phonics" class="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-kidPurple outline-none font-bold">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-2">App Feed Module</label>
+                            <select id="uploadModule" class="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-kidPurple outline-none font-bold bg-white">
+                                <option value="shows">Shows (Cartoons & Stories)</option>
+                                <option value="music">Music (Songs & Lullabies)</option>
+                                <option value="explore">Explore (Science & Nature)</option>
+                                <option value="gaming">Gaming & Fun</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-2">Category Tag</label>
+                            <input type="text" id="uploadCategory" required placeholder="e.g. nursery, animals, space, phonics" class="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-kidPurple outline-none font-bold">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-2">Age Restriction / Rating</label>
+                            <select id="uploadAgeRating" class="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-kidPurple outline-none font-bold bg-white">
+                                <option value="All Ages (Preschool)">All Ages (Preschool 2-4)</option>
+                                <option value="Ages 5-8">Ages 5-8 (Older Kids)</option>
+                                <option value="Toddlers">Toddlers (1-3)</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block font-bold text-gray-700 mb-2">Video Link (YouTube Watch / Embed URL or Google Drive Share Link)</label>
+                            <input type="text" id="uploadLink" required placeholder="https://www.youtube.com/watch?v=... or Google Drive sharing link" class="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-kidPurple outline-none font-bold text-sm">
+                            <p class="text-xs text-gray-400 mt-1">Supports standard YouTube links, YouTube shorts, embed links, and public Google Drive view links.</p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block font-bold text-gray-700 mb-2">Custom Thumbnail Image URL (Optional)</label>
+                            <input type="text" id="uploadThumbnail" placeholder="https://placehold.co/400x225/..." class="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-kidPurple outline-none font-bold text-sm">
+                        </div>
+                        <div class="md:col-span-2 flex justify-end">
+                            <button type="submit" class="bg-kidPurple hover:bg-purple-700 text-white px-8 py-3.5 rounded-2xl font-bold shadow-lg transition flex items-center space-x-2">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Publish Video to Child App</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Existing Videos Table -->
+                <div class="bg-white rounded-3xl p-6 lg:p-8 shadow-md border-4 border-gray-100">
+                    <h3 id="videoCountHeading" class="text-xl font-bold text-kidDark mb-4">Library Videos</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b-2 border-gray-100 text-gray-400 text-sm font-bold uppercase">
+                                    <th class="py-3 px-4">Thumbnail</th>
+                                    <th class="py-3 px-4">Title</th>
+                                    <th class="py-3 px-4">Module</th>
+                                    <th class="py-3 px-4">Category & Rating</th>
+                                    <th class="py-3 px-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cmsVideoTableBody" class="font-quicksand font-bold text-sm text-gray-700">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="cmsContentProfiles" class="space-y-6 hidden">
+                <div class="bg-white rounded-3xl p-6 lg:p-8 shadow-md border-4 border-kidPurple/20 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-bold text-kidPurple">Registered Explorer Profiles</h3>
+                        <p class="text-sm text-gray-500 font-quicksand">Add or remove child profiles for personalized watch experiences.</p>
+                    </div>
+                    <button onclick="openCreateProfileModal()" class="bg-kidYellow text-kidDark px-6 py-3 rounded-2xl font-extrabold shadow hover:bg-amber-400 transition">Add New Profile</button>
+                </div>
+                <div id="cmsProfilesList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="mainApp" class="flex-1 flex flex-col h-full hidden">
+        <header class="bg-white shadow-md px-6 py-4 flex items-center justify-between z-20">
+            <div class="flex items-center space-x-4">
+                <button onclick="backToProfiles()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-2xl font-bold text-sm flex items-center space-x-2 transition">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Profiles</span>
+                </button>
+                <div class="flex items-center space-x-2 cursor-pointer" onclick="backToProfiles()">
+                    <div class="bg-kidRed text-white w-10 h-10 rounded-2xl flex items-center justify-center text-xl shadow">
+                        <i class="fa-solid fa-play"></i>
+                    </div>
+                    <span class="text-2xl font-extrabold tracking-tight text-kidDark">YouTube <span class="text-kidRed">Kids</span></span>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div id="searchContainer" class="flex-1 max-w-md mx-4 relative">
+                <input type="text" id="searchInput" placeholder="Search shows, music, explore..." oninput="handleSearch(this.value)" class="w-full bg-kidBg border-4 border-transparent focus:border-kidBlue rounded-2xl py-2.5 pl-12 pr-4 font-quicksand font-bold text-kidDark outline-none transition">
+                <i class="fa-solid fa-search absolute left-4 top-3.5 text-gray-400 text-lg"></i>
+            </div>
+
+            <!-- Profile Badge & CMS Toggle -->
+            <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2 bg-kidBg px-3 py-1.5 rounded-2xl border-2 border-kidBlue/30">
+                    <span id="currentProfileAvatar" class="text-2xl">🐱</span>
+                    <span id="currentProfileNameDisplay" class="font-bold text-kidDark hidden md:inline">Explorer</span>
+                </div>
+                <button onclick="requestParentAccess()" class="bg-kidPurple hover:bg-purple-700 text-white px-3.5 py-2 rounded-xl font-bold text-xs shadow flex items-center space-x-1.5 transition">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span class="hidden sm:inline">Parent CMS</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="bg-white border-t sm:border-t-0 sm:border-b shadow-sm px-6 py-3 flex justify-around sm:justify-start sm:space-x-8 z-20">
+            <button onclick="switchTab('shows')" class="nav-btn flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 px-4 py-2 rounded-2xl font-bold text-kidBlue bg-blue-50 transition" data-tab="shows">
+                <i class="fa-solid fa-tv text-xl"></i>
+                <span>Shows</span>
+            </button>
+            <button onclick="switchTab('music')" class="nav-btn flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 px-4 py-2 rounded-2xl font-bold text-gray-500 hover:bg-gray-100 transition" data-tab="music">
+                <i class="fa-solid fa-music text-xl"></i>
+                <span>Music</span>
+            </button>
+            <button onclick="switchTab('explore')" class="nav-btn flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 px-4 py-2 rounded-2xl font-bold text-gray-500 hover:bg-gray-100 transition" data-tab="explore">
+                <i class="fa-solid fa-compass text-xl"></i>
+                <span>Explore</span>
+            </button>
+            <button onclick="switchTab('gaming')" class="nav-btn flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 px-4 py-2 rounded-2xl font-bold text-gray-500 hover:bg-gray-100 transition" data-tab="gaming">
+                <i class="fa-solid fa-gamepad text-xl"></i>
+                <span>Gaming</span>
+            </button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-6 bg-kidBg">
+            
+            <!-- MODULE 1: SHOWS -->
+            <section id="tab-shows" class="tab-content space-y-6">
+                <div id="showsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+            </section>
+
+            <!-- MODULE 2: MUSIC -->
+            <section id="tab-music" class="tab-content space-y-6 hidden">
+                <div id="musicGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+            </section>
+
+            <!-- MODULE 3: EXPLORE -->
+            <section id="tab-explore" class="tab-content space-y-6 hidden">
+                <div id="exploreGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+            </section>
+
+            <!-- MODULE 4: GAMING -->
+            <section id="tab-gaming" class="tab-content space-y-6 hidden">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+                    <div onclick="launchGame('memory')" class="bouncy-card bg-gradient-to-br from-kidBlue to-indigo-600 text-white p-6 rounded-3xl shadow-lg cursor-pointer flex items-center space-x-4">
+                        <span class="text-5xl">🃏</span>
+                        <div>
+                            <h3 class="text-xl font-extrabold">Memory Match</h3>
+                            <p class="text-blue-100 text-sm font-quicksand">Flip and match cards</p>
+                        </div>
+                    </div>
+                    <div onclick="launchGame('coloring')" class="bouncy-card bg-gradient-to-br from-kidRed to-rose-500 text-white p-6 rounded-3xl shadow-lg cursor-pointer flex items-center space-x-4">
+                        <span class="text-5xl">🎨</span>
+                        <div>
+                            <h3 class="text-xl font-extrabold">Pixel Color</h3>
+                            <p class="text-pink-100 text-sm font-quicksand">Tap to fill colors</p>
+                        </div>
+                    </div>
+                    <div onclick="launchGame('bubble')" class="bouncy-card bg-gradient-to-br from-kidGreen to-teal-600 text-white p-6 rounded-3xl shadow-lg cursor-pointer flex items-center space-x-4">
+                        <span class="text-5xl">🎈</span>
+                        <div>
+                            <h3 class="text-xl font-extrabold">Bubble Pop</h3>
+                            <p class="text-emerald-100 text-sm font-quicksand">Pop flying bubbles</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="gameContainer" class="bg-white rounded-3xl p-6 shadow-md border-4 border-kidGreen/30 min-h-[400px] flex flex-col items-center justify-center relative">
+                    <div class="text-center">
+                        <span class="text-6xl mb-4 block animate-bounce">🎮</span>
+                        <h3 class="text-2xl font-bold text-kidGreen mb-2">Ready to Play?</h3>
+                        <p class="text-gray-500 font-quicksand mb-6">Select a fun mini-game above!</p>
+                        <button onclick="launchGame('memory')" class="bg-kidGreen text-white px-8 py-3 rounded-2xl font-bold text-lg shadow-lg hover:bg-emerald-600 transition">Start Memory Match</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="createProfileModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border-8 border-kidYellow text-center">
+            <h2 class="text-3xl font-bold text-kidYellow mb-2">Create Explorer</h2>
+            <p class="text-gray-600 mb-6 font-quicksand">Choose a name and a fun avatar!</p>
+            
+            <input type="text" id="newProfileName" placeholder="Explorer Name" class="w-full px-4 py-3 rounded-2xl border-4 border-gray-200 focus:border-kidYellow focus:outline-none text-xl font-bold mb-6 text-center">
+            
+            <div class="mb-6">
+                <label class="block text-gray-700 font-bold mb-3">Choose Avatar</label>
+                <div class="flex justify-center space-x-4">
+                    <div onclick="selectAvatar('🐱')" class="avatar-option cursor-pointer w-16 h-16 rounded-2xl bg-pink-100 flex items-center justify-center text-3xl border-4 border-transparent hover:border-kidRed transition" data-avatar="🐱">🐱</div>
+                    <div onclick="selectAvatar('🚀')" class="avatar-option cursor-pointer w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center text-3xl border-4 border-transparent hover:border-kidBlue transition" data-avatar="🚀">🚀</div>
+                    <div onclick="selectAvatar('🦖')" class="avatar-option cursor-pointer w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center text-3xl border-4 border-transparent hover:border-kidGreen transition" data-avatar="🦖">🦖</div>
+                    <div onclick="selectAvatar('🦄')" class="avatar-option cursor-pointer w-16 h-16 rounded-2xl bg-purple-100 flex items-center justify-center text-3xl border-4 border-transparent hover:border-kidPurple transition" data-avatar="🦄">🦄</div>
+                </div>
+            </div>
+
+            <div class="flex space-x-4">
+                <button onclick="closeCreateProfileModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-2xl font-bold text-lg transition">Cancel</button>
+                <button onclick="saveNewProfile()" class="flex-1 bg-kidYellow text-kidDark py-3 rounded-2xl font-bold text-lg shadow-lg transition">Let's Go!</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="videoModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-6 hidden">
+        <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-8 border-kidRed flex flex-col">
+            <div class="p-4 sm:px-6 sm:py-4 flex items-center justify-between border-b">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-kidRed text-white p-2 rounded-xl text-xl">
+                        <i class="fa-solid fa-play"></i>
+                    </div>
+                    <h3 id="modalVideoTitle" class="text-xl sm:text-2xl font-extrabold text-kidDark truncate">Video Title</h3>
+                </div>
+                <button onclick="closeVideoModal()" class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-xl text-gray-700">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-4 sm:p-6 space-y-4">
+                <div class="w-full aspect-video bg-black rounded-3xl overflow-hidden relative shadow-lg flex items-center justify-center">
+                    <iframe id="modalIframe" class="w-full h-full border-0" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+                <div class="flex items-center justify-between bg-kidBg p-4 rounded-2xl">
+                    <span id="modalVideoCategory" class="font-bold text-kidBlue uppercase text-sm">Category</span>
+                    <button onclick="sendFunReaction('❤️')" class="bg-white px-4 py-2 rounded-xl shadow font-bold hover:bg-pink-50 transition">❤️ Send Heart</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_VIDEOS = [
+            {
+                id: 'v1',
+                title: 'Baby Shark Dance & Sing Along',
+                module: 'music',
+                category: 'nursery',
+                ageRating: 'All Ages (Preschool)',
+                thumbnail: 'https://placehold.co/400x225/FF334B/ffffff?text=Baby+Shark',
+                videoUrl: 'https://www.youtube.com/embed/XqZsoesa55w?autoplay=1'
+            },
+            {
+                id: 'v2',
+                title: 'Dinosaur Train Jungle Adventure',
+                module: 'shows',
+                category: 'cartoons',
+                ageRating: 'All Ages (Preschool)',
+                thumbnail: 'https://placehold.co/400x225/2ECC71/ffffff?text=Dino+Train',
+                videoUrl: 'https://www.youtube.com/embed/5MgBikgcWnY?autoplay=1'
+            },
+            {
+                id: 'v3',
+                title: 'Amazing Space Journey for Kids',
+                module: 'explore',
+                category: 'space',
+                ageRating: 'Ages 5-8',
+                thumbnail: 'https://placehold.co/400x225/9B51E0/ffffff?text=Space+Journey',
+                videoUrl: 'https://www.youtube.com/embed/HX4W1_eY5aA?autoplay=1'
+            }
+        ];
+
+        let SAMPLE_VIDEOS = JSON.parse(localStorage.getItem('yk_custom_videos')) || DEFAULT_VIDEOS;
+        let appState = {
+            profiles: JSON.parse(localStorage.getItem('yk_profiles')) || [
+                { id: 'p1', name: 'Milo', avatar: '🦖' },
+                { id: 'p2', name: 'Lily', avatar: '🦄' }
+            ],
+            currentProfile: null,
+            activeMode: 'profiles'
+        };
+
+        window.onload = function() {
+            renderProfiles();
+            renderCmsVideosTable();
+            renderCmsProfilesList();
+        };
+
+        // --- PARENT GATE SECURITY & NAVIGATION ---
+        let currentMathSolution = 0;
+        function setupMathProblem() {
+            const num1 = Math.floor(Math.random() * 5) + 4;
+            const num2 = Math.floor(Math.random() * 5) + 3;
+            currentMathSolution = num1 * num2;
+            document.getElementById('mathProblem').innerText = `${num1} × ${num2} = ?`;
+            document.getElementById('mathAnswerInput').value = '';
+            document.getElementById('parentGateError').classList.add('hidden');
+        }
+
+        function requestParentAccess() {
+            setupMathProblem();
+            document.getElementById('parentGateModal').classList.remove('hidden');
+        }
+
+        function closeParentGate() {
+            document.getElementById('parentGateModal').classList.add('hidden');
+        }
+
+        function verifyParentGate() {
+            const ans = parseInt(document.getElementById('mathAnswerInput').value);
+            if (ans === currentMathSolution) {
+                closeParentGate();
+                switchToCmsMode();
+            } else {
+                document.getElementById('parentGateError').classList.remove('hidden');
+            }
+        }
+
+        function switchToKidMode() {
+            document.getElementById('parentGateModal').classList.add('hidden');
+            document.getElementById('parentCmsDashboard').classList.add('hidden');
+            if (!appState.currentProfile) {
+                document.getElementById('profileScreen').classList.remove('hidden');
+                document.getElementById('mainApp').classList.add('hidden');
+                document.getElementById('currentModeLabel').innerText = 'Select Profile';
+            } else {
+                document.getElementById('profileScreen').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                document.getElementById('currentModeLabel').innerText = `Kids Playroom (${appState.currentProfile.name})`;
+                switchTab('shows');
+            }
+        }
+
+        function switchToCmsMode() {
+            document.getElementById('profileScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('parentCmsDashboard').classList.remove('hidden');
+            document.getElementById('currentModeLabel').innerText = 'Parent Backend & CMS Dashboard';
+            renderCmsVideosTable();
+            renderCmsProfilesList();
+        }
+
+        // --- PROFILE LOGIC ---
+        function renderProfiles() {
+            const grid = document.getElementById('profilesGrid');
+            grid.innerHTML = '';
+            appState.profiles.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'bouncy-card bg-kidBg hover:bg-blue-50 border-4 border-transparent hover:border-kidBlue rounded-3xl p-6 flex flex-col items-center cursor-pointer shadow-md transition';
+                card.onclick = () => selectProfile(p);
+                card.innerHTML = `
+                    <div class="w-20 h-20 rounded-2xl bg-white shadow-inner flex items-center justify-center text-4xl mb-3 border-2 border-gray-200">${p.avatar}</div>
+                    <span class="font-extrabold text-xl text-kidDark">${p.name}</span>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function selectProfile(profile) {
+            appState.currentProfile = profile;
+            document.getElementById('currentProfileAvatar').innerText = profile.avatar;
+            document.getElementById('currentProfileNameDisplay').innerText = profile.name;
+            document.getElementById('profileScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('currentModeLabel').innerText = `Kids Playroom (${profile.name})`;
+            switchTab('shows');
+        }
+
+        function backToProfiles() {
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('parentCmsDashboard').classList.add('hidden');
+            document.getElementById('profileScreen').classList.remove('hidden');
+            document.getElementById('currentModeLabel').innerText = 'Select Profile';
+        }
+
+        let selectedAvatarSymbol = '🐱';
+        function selectAvatar(symbol) {
+            selectedAvatarSymbol = symbol;
+            document.querySelectorAll('.avatar-option').forEach(el => {
+                if(el.dataset.avatar === symbol) {
+                    el.classList.add('border-kidBlue', 'scale-105', 'bg-white');
+                } else {
+                    el.classList.remove('border-kidBlue', 'scale-105', 'bg-white');
+                }
+            });
+        }
+
+        function openCreateProfileModal() {
+            document.getElementById('createProfileModal').classList.remove('hidden');
+            document.getElementById('newProfileName').value = '';
+            selectAvatar('🐱');
+        }
+
+        function closeCreateProfileModal() {
+            document.getElementById('createProfileModal').classList.add('hidden');
+        }
+
+        function saveNewProfile() {
+            const name = document.getElementById('newProfileName').value.trim();
+            if (!name) return alert('Please enter a profile name');
+            appState.profiles.push({ id: 'p_' + Date.now(), name, avatar: selectedAvatarSymbol });
+            localStorage.setItem('yk_profiles', JSON.stringify(appState.profiles));
+            closeCreateProfileModal();
+            renderProfiles();
+            renderCmsProfilesList();
+        }
+
+        function deleteProfile(id) {
+            if (confirm('Delete this profile?')) {
+                appState.profiles = appState.profiles.filter(p => p.id !== id);
+                localStorage.setItem('yk_profiles', JSON.stringify(appState.profiles));
+                renderProfiles();
+                renderCmsProfilesList();
+            }
+        }
+
+        // --- CMS: VIDEO UPLOAD & MANAGEMENT ---
+        function switchCmsTab(tabName) {
+            const vBtn = document.getElementById('cmsTabBtnVideos');
+            const pBtn = document.getElementById('cmsTabBtnProfiles');
+            const vContent = document.getElementById('cmsContentVideos');
+            const pContent = document.getElementById('cmsContentProfiles');
+
+            if (tabName === 'videos') {
+                vBtn.className = 'px-6 py-3 rounded-2xl font-bold bg-kidPurple text-white shadow transition flex items-center space-x-2';
+                pBtn.className = 'px-6 py-3 rounded-2xl font-bold bg-white text-gray-600 hover:bg-gray-100 shadow-sm transition flex items-center space-x-2';
+                vContent.classList.remove('hidden');
+                pContent.classList.add('hidden');
+            } else {
+                pBtn.className = 'px-6 py-3 rounded-2xl font-bold bg-kidPurple text-white shadow transition flex items-center space-x-2';
+                vBtn.className = 'px-6 py-3 rounded-2xl font-bold bg-white text-gray-600 hover:bg-gray-100 shadow-sm transition flex items-center space-x-2';
+                pContent.classList.remove('hidden');
+                vContent.classList.add('hidden');
+            }
+        }
+
+        function formatVideoEmbedUrl(url) {
+            if (!url) return '';
+            // Handle YouTube watch, short, and share links
+            if (url.includes('youtube.com/watch?v=')) {
+                const vid = url.split('watch?v=')[1].split('&')[0];
+                return `https://www.youtube.com/embed/${vid}?autoplay=1`;
+            }
+            if (url.includes('youtu.be/')) {
+                const vid = url.split('youtu.be/')[1].split('?')[0];
+                return `https://www.youtube.com/embed/${vid}?autoplay=1`;
+            }
+            if (url.includes('youtube.com/shorts/')) {
+                const vid = url.split('shorts/')[1].split('?')[0];
+                return `https://www.youtube.com/embed/${vid}?autoplay=1`;
+            }
+            // Handle Google Drive share links
+            if (url.includes('drive.google.com')) {
+                if (url.includes('/view')) {
+                    return url.replace('/view', '/preview');
+                }
+                if (url.includes('/file/d/')) {
+                    const fileId = url.split('/file/d/')[1].split('/')[0];
+                    return `https://drive.google.com/file/d/${fileId}/preview`;
+                }
+            }
+            return url;
+        }
+
+        function handleVideoUpload(event) {
+            event.preventDefault();
+            const title = document.getElementById('uploadTitle').value.trim();
+            const module = document.getElementById('uploadModule').value;
+            const category = document.getElementById('uploadCategory').value.trim().toLowerCase();
+            const ageRating = document.getElementById('uploadAgeRating').value;
+            const rawLink = document.getElementById('uploadLink').value.trim();
+            const customThumb = document.getElementById('uploadThumbnail').value.trim();
+
+            const videoUrl = formatVideoEmbedUrl(rawLink);
+            const thumbnail = customThumb || `https://placehold.co/400x225/00A8FF/ffffff?text=${encodeURIComponent(title)}`;
+
+            const newVideo = {
+                id: 'v_' + Date.now(),
+                title,
+                module,
+                category,
+                ageRating,
+                thumbnail,
+                videoUrl
+            };
+
+            SAMPLE_VIDEOS.unshift(newVideo);
+            localStorage.setItem('yk_custom_videos', JSON.stringify(SAMPLE_VIDEOS));
+            document.getElementById('videoUploadForm').reset();
+            renderCmsVideosTable();
+            alert('Video successfully uploaded and published to the child app feed!');
+        }
+
+        function deleteVideo(id) {
+            if (confirm('Are you sure you want to delete this video from the library?')) {
+                SAMPLE_VIDEOS = SAMPLE_VIDEOS.filter(v => v.id !== id);
+                localStorage.setItem('yk_custom_videos', JSON.stringify(SAMPLE_VIDEOS));
+                renderCmsVideosTable();
+            }
+        }
+
+        function renderCmsVideosTable() {
+            const tbody = document.getElementById('cmsVideoTableBody');
+            document.getElementById('videoCountHeading').innerText = `Library Videos (${SAMPLE_VIDEOS.length} items)`;
+            tbody.innerHTML = '';
+            SAMPLE_VIDEOS.forEach(v => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-100 hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="py-3 px-4"><img src="${v.thumbnail}" class="w-20 h-12 object-cover rounded-xl" onerror="this.src='https://placehold.co/400x225/2D3748/ffffff?text=Video'"></td>
+                    <td class="py-3 px-4 text-kidDark">${v.title}</td>
+                    <td class="py-3 px-4"><span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs uppercase font-bold">${v.module}</span></td>
+                    <td class="py-3 px-4 text-gray-500">
+                        <div class="font-bold text-kidBlue">#${v.category}</div>
+                        <div class="text-xs text-gray-400 font-normal"><i class="fa-solid fa-shield-halved"></i> ${v.ageRating || 'All Ages'}</div>
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                        <button onclick="deleteVideo('${v.id}')" class="bg-red-100 hover:bg-red-200 text-kidRed px-3 py-1.5 rounded-xl font-bold transition text-xs"><i class="fa-solid fa-trash"></i> Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderCmsProfilesList() {
+            const container = document.getElementById('cmsProfilesList');
+            container.innerHTML = '';
+            appState.profiles.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'bg-white p-6 rounded-3xl shadow-sm border-2 border-gray-100 flex items-center justify-between';
+                card.innerHTML = `
+                    <div class="flex items-center space-x-4">
+                        <span class="text-4xl bg-kidBg w-14 h-14 rounded-2xl flex items-center justify-center">${p.avatar}</span>
+                        <div>
+                            <h4 class="font-bold text-lg text-kidDark">${p.name}</h4>
+                            <span class="text-xs text-gray-400">Explorer Profile</span>
+                        </div>
+                    </div>
+                    <button onclick="deleteProfile('${p.id}')" class="text-kidRed hover:bg-red-50 p-3 rounded-xl transition"><i class="fa-solid fa-trash-can"></i></button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- PLAYROOM MODULES & TABS ---
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.dataset.tab === tabName) {
+                    btn.className = 'nav-btn flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 px-4 py-2 rounded-2xl font-bold text-kidBlue bg-blue-50 transition';
+                } else {
+                    btn.className = 'nav-btn flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 px-4 py-2 rounded-2xl font-bold text-gray-500 hover:bg-gray-100 transition';
+                }
+            });
+
+            if (tabName === 'shows') renderModuleGrid('shows', 'showsGrid');
+            if (tabName === 'music') renderModuleGrid('music', 'musicGrid');
+            if (tabName === 'explore') renderModuleGrid('explore', 'exploreGrid');
+        }
+
+        function renderModuleGrid(moduleName, elementId) {
+            const grid = document.getElementById(elementId);
+            const items = SAMPLE_VIDEOS.filter(v => v.module === moduleName);
+            grid.innerHTML = '';
+            if (items.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-12"><span class="text-5xl block mb-2">📭</span><p class="text-gray-500 font-bold text-lg">No videos uploaded in this module yet. Use Parent CMS to add some!</p></div>`;
+                return;
+            }
+            items.forEach(v => {
+                const card = document.createElement('div');
+                card.className = 'bouncy-card bg-white rounded-3xl overflow-hidden shadow-md cursor-pointer border-4 border-gray-100 hover:border-kidBlue transition flex flex-col';
+                card.onclick = () => openVideoModal(v);
+                card.innerHTML = `
+                    <div class="relative aspect-video bg-gray-200 overflow-hidden">
+                        <img src="${v.thumbnail}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x225/00A8FF/ffffff?text=Video'">
+                        <div class="absolute top-2 left-2 bg-kidRed text-white w-9 h-9 rounded-full flex items-center justify-center shadow-lg text-sm">
+                            <i class="fa-solid fa-play"></i>
+                        </div>
+                        <div class="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white px-2.5 py-0.5 rounded-full text-xs font-bold">
+                            ${v.ageRating || 'All Ages'}
+                        </div>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col justify-between">
+                        <h4 class="font-extrabold text-kidDark text-lg mb-2 line-clamp-2">${v.title}</h4>
+                        <span class="text-xs bg-kidBg px-3 py-1 rounded-full text-kidBlue uppercase font-bold w-max">#${v.category}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openVideoModal(video) {
+            document.getElementById('modalVideoTitle').innerText = video.title;
+            document.getElementById('modalIframe').src = video.videoUrl;
+            document.getElementById('modalVideoCategory').innerText = `Module: ${video.module} • Category: #${video.category} • Rating: ${video.ageRating || 'All Ages'}`;
+            document.getElementById('videoModal').classList.remove('hidden');
+        }
+
+        function closeVideoModal() {
+            document.getElementById('videoModal').classList.add('hidden');
+            document.getElementById('modalIframe').src = '';
+        }
+
+        function handleSearch(query) {
+            const q = query.toLowerCase().trim();
+            if (!q) {
+                switchTab('shows');
+                return;
+            }
+            switchTab('shows');
+            const grid = document.getElementById('showsGrid');
+            const matches = SAMPLE_VIDEOS.filter(v => v.title.toLowerCase().includes(q) || v.category.toLowerCase().includes(q));
+            grid.innerHTML = '';
+            if (matches.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-12"><span class="text-5xl block mb-2">🔍</span><p class="text-gray-500 font-bold text-xl">No fun videos found for "${query}"</p></div>`;
+            } else {
+                matches.forEach(v => {
+                    const card = document.createElement('div');
+                    card.className = 'bouncy-card bg-white rounded-3xl overflow-hidden shadow-md cursor-pointer border-4 border-gray-100 hover:border-kidBlue transition flex flex-col';
+                    card.onclick = () => openVideoModal(v);
+                    card.innerHTML = `
+                        <div class="relative aspect-video bg-gray-200 overflow-hidden">
+                            <img src="${v.thumbnail}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-4"><h4 class="font-extrabold text-kidDark text-lg">${v.title}</h4></div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+        }
+
+        function sendFunReaction(emoji) {
+            alert(`Sent ${emoji} reaction! Super fun!`);
+        }
+
+        // --- MINI GAMES ---
+        function launchGame(type) {
+            const container = document.getElementById('gameContainer');
+            container.innerHTML = '';
+            if (type === 'memory') {
+                container.innerHTML = `
+                    <div class="w-full text-center">
+                        <h3 class="text-2xl font-extrabold text-kidBlue mb-2">🃏 Memory Match Game</h3>
+                        <div id="memoryBoard" class="grid grid-cols-4 gap-4 max-w-md mx-auto mb-4"></div>
+                        <button onclick="launchGame('memory')" class="bg-kidBlue text-white px-6 py-2 rounded-xl font-bold">Restart</button>
+                    </div>
+                `;
+                const emojis = ['🐶', '🐱', '🐰', '🦊', '🐶', '🐱', '🐰', '🦊'].sort(() => 0.5 - Math.random());
+                const board = document.getElementById('memoryBoard');
+                let first = null, lock = false;
+                emojis.forEach(emoji => {
+                    const card = document.createElement('div');
+                    card.className = 'h-20 bg-kidBg rounded-2xl flex items-center justify-center text-3xl cursor-pointer shadow border-2 border-kidBlue/30 font-bold';
+                    card.innerText = '❓';
+                    card.onclick = function() {
+                        if (lock || card === first || card.classList.contains('matched')) return;
+                        card.innerText = emoji;
+                        card.classList.add('bg-white');
+                        if (!first) first = card;
+                        else {
+                            if (first.dataset.emoji === card.dataset.emoji || first.innerText === card.innerText) {
+                                first.classList.add('matched');
+                                card.classList.add('matched');
+                                first = null;
+                            } else {
+                                lock = true;
+                                setTimeout(() => {
+                                    first.innerText = '❓'; first.classList.remove('bg-white');
+                                    card.innerText = '❓'; card.classList.remove('bg-white');
+                                    first = null; lock = false;
+                                }, 700);
+                            }
+                        }
+                    };
+                    board.appendChild(card);
+                });
+            } else if (type === 'coloring') {
+                container.innerHTML = `
+                    <div class="w-full text-center">
+                        <h3 class="text-2xl font-extrabold text-kidRed mb-2">🎨 Pixel Color Pad</h3>
+                        <div class="flex justify-center space-x-3 mb-4">
+                            <button onclick="currentBrush='#FF334B'" class="w-10 h-10 rounded-full bg-kidRed border-2 border-white shadow"></button>
+                            <button onclick="currentBrush='#FFC700'" class="w-10 h-10 rounded-full bg-kidYellow border-2 border-white shadow"></button>
+                            <button onclick="currentBrush='#00A8FF'" class="w-10 h-10 rounded-full bg-kidBlue border-2 border-white shadow"></button>
+                        </div>
+                        <div id="pixelGrid" class="grid grid-cols-6 gap-2 max-w-xs mx-auto bg-gray-100 p-4 rounded-2xl"></div>
+                    </div>
+                `;
+                window.currentBrush = '#FF334B';
+                const pGrid = document.getElementById('pixelGrid');
+                for(let i=0; i<24; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'w-10 h-10 bg-white rounded-xl cursor-pointer border-2 border-gray-200';
+                    cell.onclick = () => cell.style.backgroundColor = window.currentBrush;
+                    pGrid.appendChild(cell);
+                }
+            } else if (type === 'bubble') {
+                container.innerHTML = `
+                    <div class="w-full text-center h-[320px] relative overflow-hidden bg-gradient-to-b from-blue-100 to-kidBg rounded-2xl border-4 border-kidGreen p-4">
+                        <h3 class="text-xl font-bold text-kidGreen mb-1">🎈 Bubble Pop! Tap the bubbles</h3>
+                        <div id="bubbleArena" class="absolute inset-0 pointer-events-none"></div>
+                        <button onclick="startBubbleGame()" class="bg-kidGreen text-white px-6 py-2.5 rounded-xl font-bold shadow-lg relative z-10">Start Pop Game</button>
+                    </div>
+                `;
+            }
+        }
+
+        function startBubbleGame() {
+            const arena = document.getElementById('bubbleArena');
+            arena.innerHTML = '';
+            for(let i=0; i<8; i++) {
+                const b = document.createElement('div');
+                b.className = 'absolute w-12 h-12 bg-kidBlue/80 hover:bg-kidRed rounded-full flex items-center justify-center text-white font-bold cursor-pointer pointer-events-auto transition animate-bounce';
+                b.style.left = `${Math.random() * 80 + 10}%`;
+                b.style.top = `${Math.random() * 60 + 20}%`;
+                b.innerHTML = '🎈';
+                b.onclick = () => { b.remove(); };
+                arena.appendChild(b);
+            }
+        }
+    </script>
+</body>
+</html>
